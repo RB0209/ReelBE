@@ -1,186 +1,314 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Be Eternal — Insta Reel Script Player</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Insta Reel — Storyboard (GSAP-enhanced)</title>
   <style>
-    :root{--brand:#2e3d75;--bg:#0b0b0f;--card:#ffffff}
-    *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial}
+    :root{--gold:#ffd166;--accent:#ff9a66;--muted:#9aa4b2}
+    body{margin:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;color:#fff;background:#0b0d10}
+    .canvas-wrap{width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box}
+    .reel{width:360px;height:640px;background:linear-gradient(180deg,#111215,#15181c);border-radius:22px;overflow:hidden;position:relative;box-shadow:0 24px 60px rgba(0,0,0,0.6);cursor:pointer}
 
-    /* Reel frame */
-    .reel-container{
-      width:360px;height:640px;border-radius:28px;overflow:hidden;background:var(--card);position:relative;box-shadow:0 20px 50px rgba(0,0,0,0.5);display:flex;flex-direction:column;align-items:center}
+    .timeline{position:absolute;top:12px;left:12px;right:12px;height:6px;border-radius:99px;z-index:60}
+    .timeline .track{height:100%;background:rgba(255,255,255,0.04);border-radius:999px;overflow:hidden}
+    .timeline .progress{height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--accent));}
 
-    /* Top brand bar */
-    .topbar{width:100%;height:72px;display:flex;align-items:center;gap:12px;padding:0 18px;background:linear-gradient(180deg, rgba(46,61,117,0.04), transparent)}
-    .logo{display:flex;align-items:center;gap:10px}
-    .logo .mark{width:46px;height:46px;border-radius:10px;background:var(--brand);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px}
-    .logo .text{color:var(--brand);font-weight:800;font-size:18px;letter-spacing:0.4px}
+    main.stage{position:absolute;inset:0;padding:28px;display:block}
+    .scene{position:absolute;inset:28px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;opacity:0;transform:translateY(28px) scale(.996);transition:opacity .35s ease, transform .45s cubic-bezier(.2,.9,.2,1);pointer-events:none}
+    .scene.active{opacity:1;transform:none;pointer-events:auto}
 
-    /* Center stage */
-    .stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 22px}
-    .illustration-wrap{width:240px;height:240px;border-radius:140px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg, rgba(46,61,117,0.08), rgba(46,61,117,0.02));transition:transform .45s cubic-bezier(.2,.9,.2,1),opacity .45s;box-shadow:0 12px 30px rgba(46,61,117,0.06)}
-    .illustration{width:140px;height:140px;transition:transform .45s ease,opacity .45s;filter:drop-shadow(0 6px 18px rgba(46,61,117,0.12))}
+    h2.headline{font-size:22px;font-weight:800;line-height:1.05;margin:0}
+    p.sub{color:var(--muted);font-size:14px;margin:0}
+    p.caption{background:rgba(255,255,255,0.02);padding:10px 14px;border-radius:12px;color:#fff;max-width:92%;margin:0}
 
-    .illustration-wrap.show{transform:translateY(-8px);}
-    .illustration-wrap.hide{transform:translateY(0);}
+    .graphic{width:180px;height:180px;display:grid;place-items:center;position:relative}
+    svg{width:100%;height:100%}
 
-    /* Caption */
-    .caption{position:absolute;left:50%;transform:translateX(-50%);bottom:20px;background:var(--brand);color:#fff;padding:12px 16px;border-radius:14px;font-size:15px;max-width:88%;text-align:center;box-shadow:0 10px 30px rgba(46,61,117,0.16)}
+    /* reduce-motion fallback via media-query */
+    @media (prefers-reduced-motion: reduce){
+      .scene{transition:none!important}
+      .graphic{animation:none!important}
+    }
 
-    /* small controls */
-    .controls{position:absolute;top:82%;left:50%;transform:translateX(-50%);display:flex;gap:12px}
-    .btn{background:var(--brand);color:#fff;border:none;padding:8px 12px;border-radius:10px;font-weight:600;cursor:pointer}
+    /* minor visual helpers (kept minimal since GSAP will drive the real motion) */
+    .coin{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font-weight:800;background:linear-gradient(180deg,#ffd166,#f9a825);color:#4b2b00;box-shadow:0 10px 30px rgba(0,0,0,0.45);}
+    .big-no{font-size:78px;font-weight:900;color:#ff6b6b;margin:0}
+    .final{padding:14px;border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));}
 
-    /* responsive (for preview) */
-    @media (max-width:420px){.reel-container{transform:scale(.9)}}
+    /* debug overlay */
+    #errorOverlay{position:absolute;left:12px;right:12px;bottom:12px;z-index:99;display:none}
+    #errorBox{background:rgba(255,16,16,0.12);border-radius:8px;padding:10px 12px;color:#fff;font-size:12px;backdrop-filter:blur(6px);max-height:140px;overflow:auto}
   </style>
 </head>
 <body>
-  <div class="reel-container" role="region" aria-label="Be Eternal Reel">
-    <div class="topbar">
-      <div class="logo">
-        <div class="mark">BE</div>
-        <div class="text">Be Eternal</div>
-      </div>
-    </div>
+  <div class="canvas-wrap">
+    <article class="reel" id="reel" aria-hidden="false">
+      <div class="timeline"><div class="track"><div class="progress" id="progress"></div></div></div>
+      <main class="stage" role="main">
 
-    <div class="stage">
-      <div id="illustrationWrap" class="illustration-wrap hide">
-        <img id="illustration" class="illustration" src="" alt="illustration" />
-      </div>
-    </div>
+        <!-- Scenes (semantic tags) -->
+        <section class="scene active" data-i="0">
+          <div class="graphic" aria-hidden="true">
+            <svg viewBox="0 0 64 64" role="img" aria-label="megaphone"><polygon points="10,24 36,12 36,52 10,40" fill="var(--gold)"/><rect x="36" y="20" width="16" height="24" fill="var(--accent)"/></svg>
+          </div>
+          <h2 class="headline">Boosting posts but getting no results?</h2>
+          <p class="sub">A jewellery brand was stuck in this loop.</p>
+        </section>
 
-    <div id="caption" class="caption" aria-live="polite"></div>
+        <section class="scene" data-i="1">
+          <div class="graphic" aria-hidden="true">
+            <svg viewBox="0 0 200 200" role="img" aria-label="gem"><polygon points="100,10 190,80 150,190 50,190 10,80" fill="#ffd166" stroke="#fff" stroke-width="4"/></svg>
+            <div class="spark" style="left:20%;top:20%"></div>
+            <div class="spark" style="left:70%;top:40%"></div>
+          </div>
+          <p class="caption">The founder asked, “Is this normal for every brand?”</p>
+        </section>
 
-    <div class="controls">
-      <button id="playBtn" class="btn">▶ Play</button>
-      <button id="stopBtn" class="btn">⏹ Stop</button>
-    </div>
+        <section class="scene" data-i="2">
+          <div style="display:flex;align-items:center;gap:12px;justify-content:center">
+            <div class="coin" data-i="0">₹30</div>
+            <span aria-hidden style="font-size:28px">→</span>
+            <div class="coin" data-i="2">₹50</div>
+          </div>
+          <p class="caption">They spent ₹30 and made only ₹50 in sales.</p>
+        </section>
+
+        <section class="scene" data-i="3">
+          <div class="graphic" aria-hidden="true">
+            <svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="50" stroke="#ff6b6b" stroke-width="6" fill="none"/><line x1="40" y1="40" x2="80" y2="80" stroke="#ff6b6b" stroke-width="6"/><line x1="80" y1="40" x2="40" y2="80" stroke="#ff6b6b" stroke-width="6"/></svg>
+          </div>
+          <p class="caption">On days with no spend, sales dropped to zero.</p>
+        </section>
+
+        <section class="scene" data-i="4">
+          <h2 class="big-no">NO</h2>
+          <p class="sub">Boosting isn’t the only way.</p>
+        </section>
+
+        <section class="scene" data-i="5">
+          <div class="graphic" aria-hidden="true">
+            <svg viewBox="0 0 120 120"><circle cx="40" cy="50" r="20" fill="var(--gold)"/><circle cx="80" cy="50" r="20" fill="var(--accent)"/></svg>
+          </div>
+          <p class="caption">👉 Built a custom audience from engaged users.</p>
+        </section>
+
+        <section class="scene" data-i="6">
+          <div class="graphic" aria-hidden="true">
+            <svg viewBox="0 0 160 120"><rect x="20" y="20" width="120" height="80" rx="10" fill="#1e1e22" stroke="#333"/><rect x="30" y="30" width="50" height="50" fill="var(--gold)"/><rect x="90" y="40" width="60" height="20" fill="#fff" opacity="0.2"/></svg>
+          </div>
+          <p class="caption">👉 Ran conversion-focused ads with clear offers.</p>
+        </section>
+
+        <section class="scene" data-i="7">
+          <div class="graphic" aria-hidden="true">
+            <svg viewBox="0 0 140 120"><circle cx="70" cy="60" r="40" fill="#111" stroke="#444"/><path d="M70 20 A40 40 0 1 1 69 20" class="retarget-arrow"/></svg>
+          </div>
+          <p class="caption">👉 Retargeted browsers who didn’t buy.</p>
+        </section>
+
+        <section class="scene" data-i="8">
+          <div class="graphic" aria-hidden="true">
+            <svg viewBox="0 0 200 120" class="chart"><path d="M10 100 C50 60 100 80 150 40 180 20 200 30 200 20" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <h2 class="headline">The result?</h2>
+          <p class="caption">Steady, daily sales without boost-or-bust stress.</p>
+        </section>
+
+        <section class="scene" data-i="9">
+          <div class="final">
+            <h2 class="headline">Takeaway</h2>
+            <p class="sub">Use boosts to warm people up, then a real ad strategy to sell.</p>
+          </div>
+          <div class="confetti">
+            <div class="c" style="left:10%;background:#ffd166"></div>
+            <div class="c" style="left:40%;background:#ff9a66"></div>
+            <div class="c" style="left:70%;background:#9ad6ff"></div>
+          </div>
+        </section>
+
+      </main>
+
+      <div id="errorOverlay"><div id="errorBox">JS errors will appear here</div></div>
+    </article>
   </div>
 
+  <!-- Load GSAP (graceful fallback if blocked) -->
   <script>
-    // Brand: Be Eternal (color: #2e3d75)
-    // Script lines (kept as you provided)
-    const lines = [
-      "Boosting posts but getting no results?",
-      "A jewellery brand I worked for was stuck in a loop.",
-      "After spending ₹30 they were making only ₹50 in sales—",
-      "and on days they didn’t spend, zero sales.",
-      "The founder asked me, 'Is this how it goes with every brand?'",
-      "No.",
-      "Boosting is great for getting noticed—but it’s not a forever plan for sales.",
-      "So here’s what we actually did for that jewellery brand:",
-      "👉 First, we built a custom audience from people already liking and engaging.",
-      "👉 Then we ran conversion-focused Meta ads with a clear offer.",
-      "👉 Finally, we set up retargeting for all those window-shoppers who browsed but didn’t buy.",
-      "The result? Steady, daily sales without that 'boost-or-bust' stress.",
-      "Takeaway: use boosts to warm people up, then let a real ad strategy do the selling."
-    ];
+    (function(){
+      var s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js';
+      s.crossOrigin = 'anonymous';
+      s.onload = function(){ window._GSAP_LOADED = true };
+      s.onerror = function(){ window._GSAP_LOADED = false };
+      document.head.appendChild(s);
+    })();
+  </script>
 
-    // Carefully chosen icons that match each line. I picked compact SVGs from a reliable icon source.
-    const icons = [
-      'https://www.svgrepo.com/show/528436/megaphone.svg',    // boosting
-      'https://www.svgrepo.com/show/513403/shop.svg',         // jewellery brand / store
-      'https://www.svgrepo.com/show/375664/money.svg',        // spend vs sales
-      'https://www.svgrepo.com/show/513392/sad.svg',          // zero sales sadness
-      'https://www.svgrepo.com/show/513257/question.svg',     // founder's question
-      'https://www.svgrepo.com/show/513310/close.svg',        // No.
-      'https://www.svgrepo.com/show/533164/like.svg',         // noticed / likes
-      'https://www.svgrepo.com/show/513413/plan.svg',         // strategy
-      'https://www.svgrepo.com/show/513411/group.svg',        // custom audience / people
-      'https://www.svgrepo.com/show/513371/target.svg',       // conversion-focused ads (target)
-      'https://www.svgrepo.com/show/513415/offer.svg',        // offer / conversion
-      'https://www.svgrepo.com/show/513390/graph.svg',        // steady, daily sales (graph up)
-      'https://www.svgrepo.com/show/513384/happy.svg'         // takeaway / success
-    ];
+  <script>
+    // Core timeline logic with GSAP if available; otherwise fallback to simple timer-based playback
+    (function(){
+      const scenes = Array.from(document.querySelectorAll('.scene'));
+      const durations = [3,3,3,2,2,3,3,3,3,4];
+      const total = durations.reduce((a,b)=>a+b,0);
+      const progress = document.getElementById('progress');
+      const reel = document.getElementById('reel');
+      const errorBox = document.getElementById('errorBox');
+      let masterTimeline = null;
+      let fallbackTimers = [];
 
-    const illustration = document.getElementById('illustration');
-    const illustrationWrap = document.getElementById('illustrationWrap');
-    const caption = document.getElementById('caption');
-    const playBtn = document.getElementById('playBtn');
-    const stopBtn = document.getElementById('stopBtn');
-
-    let idx = 0;
-    let playing = false;
-    let timeoutId = null;
-
-    // compute display duration based on text length (longer lines stay longer) - triple-checked for natural pacing
-    function durationFor(line){
-      const chars = line.length;
-      // base 2000ms, plus ~55ms per character, clamped
-      const ms = Math.max(2200, Math.min(6500, Math.floor(chars * 55) + 800));
-      return ms;
-    }
-
-    function showLine(i){
-      if(i >= lines.length){
-        playing = false;
-        playBtn.disabled = false;
-        return;
+      function showScene(i){
+        scenes.forEach((s,idx)=> s.classList.toggle('active', idx===i));
       }
 
-      const text = lines[i];
-      // set caption
-      caption.textContent = text;
-      caption.style.opacity = 1;
+      function setupGSAP(){
+        try{
+          if(!window.gsap) return false;
+          // kill any previous timeline
+          if(masterTimeline){ masterTimeline.kill(); masterTimeline = null; }
 
-      // set illustration (fallback to first icon if missing)
-      illustration.src = icons[i] || icons[0];
-      illustration.alt = text;
+          const gs = window.gsap;
+          masterTimeline = gs.timeline({repeat:-1, paused:false});
 
-      // animate in
-      illustrationWrap.classList.add('show');
+          let acc=0;
+          for(let i=0;i<scenes.length;i++){
+            const scene = scenes[i];
+            const dur = durations[i];
+            const startPct = (acc/total)*100;
+            const endPct = ((acc+dur)/total)*100;
 
-      // schedule hide + next
-      const dur = durationFor(text);
-      timeoutId = setTimeout(()=>{
-        // animate out
-        illustrationWrap.classList.remove('show');
-        caption.style.opacity = 0;
+            // when entering scene: show, then animate visuals concurrently
+            masterTimeline.add(()=>{
+              // clear tweens of elements to avoid overlap
+              gs.killTweensOf(scene.querySelectorAll('*'));
+              showScene(i);
+              // scene-specific animations
+              if(i===2){ // coins
+                const coins = scene.querySelectorAll('.coin');
+                gs.fromTo(coins, {y:-60, scale:0.7, opacity:0}, {y:0, scale:1, opacity:1, stagger:0.12, duration:0.6, ease:'bounce.out'});
+              }
+              if(i===1){ // gem sparkles
+                const sparks = scene.querySelectorAll('.spark');
+                gs.to(sparks, {scale:1.2, opacity:1, repeat:-1, yoyo:true, stagger:0.3, duration:1.2, ease:'sine.inOut'});
+              }
+              if(i===8){ // chart draw
+                const path = scene.querySelector('.chart path');
+                if(path){
+                  const len = path.getTotalLength();
+                  path.style.stroke = getComputedStyle(document.documentElement).getPropertyValue('--gold') || '#ffd166';
+                  path.style.strokeWidth = 3;
+                  path.style.fill = 'none';
+                  path.style.strokeDasharray = len;
+                  path.style.strokeDashoffset = len;
+                  gs.to(path, {strokeDashoffset:0, duration:Math.min(2, dur-0.2), ease:'power2.out'});
+                }
+              }
+              if(i===7){ // retarget rotate
+                const arrow = scene.querySelector('.retarget-arrow');
+                if(arrow) gs.to(arrow, {rotation:360, transformOrigin:'50% 50%', repeat:-1, duration:2, ease:'linear'});
+              }
+              if(i===4){ // big NO shock
+                const bigno = scene.querySelector('.big-no') || scene.querySelector('.headline');
+                if(bigno) gs.fromTo(bigno, {scale:0.9, rotation:-6, opacity:0}, {scale:1, rotation:0, opacity:1, duration:0.6, ease:'back.out(1.4)'});
+              }
+              if(i===9){ // confetti
+                const confs = scene.querySelectorAll('.confetti .c');
+                confs.forEach((c,idx)=>{
+                  gs.fromTo(c, {y:-10, opacity:0}, {y:240, rotation:360, opacity:1, delay:idx*0.08, duration:1.6, ease:'power1.out'});
+                });
+              }
+            }, '+=0');
 
-        // small gap before next
-        timeoutId = setTimeout(()=>{
-          idx = i + 1;
-          showLine(idx);
-        }, 420);
+            // progress animation over this scene duration
+            masterTimeline.to(progress, {width: endPct + '%', duration: dur, ease: 'linear'}, '>-0');
 
-      }, dur);
-    }
+            // small pause (none) then continue
+            acc += dur;
+          }
 
-    function play(){
-      if(playing) return;
-      playing = true;
-      playBtn.disabled = true;
-      idx = 0;
-      showLine(0);
-    }
+          return true;
+        }catch(err){
+          console.error('GSAP setup failed', err);
+          if(errorBox) errorBox.textContent = 'GSAP Error: ' + (err && err.message ? err.message : String(err)); document.getElementById('errorOverlay').style.display='block';
+          return false;
+        }
+      }
 
-    function stop(){
-      playing = false;
-      playBtn.disabled = false;
-      clearTimeout(timeoutId);
-      caption.textContent = '';
-      illustration.src = '';
-      illustrationWrap.classList.remove('show');
-    }
+      function startFallback(from=0){
+        // simple timer-based playback if GSAP not available
+        clearFallback();
+        let acc = 0;
+        for(let i=from;i<scenes.length;i++){
+          const idx = i;
+          fallbackTimers.push(setTimeout(()=> showScene(idx), acc*1000));
+          // animate progress step (jump) to end of scene so it's visible
+          fallbackTimers.push(setTimeout(()=>{ progress.style.width = ((acc+durations[idx])/total*100) + '%'; }, acc*1000));
+          acc += durations[idx];
+        }
+        fallbackTimers.push(setTimeout(()=> startFallback(0), acc*1000));
+      }
 
-    playBtn.addEventListener('click', play);
-    stopBtn.addEventListener('click', stop);
+      function clearFallback(){ fallbackTimers.forEach(t=>clearTimeout(t)); fallbackTimers=[]; }
 
-    // autoplay once when the page loads for quick preview
-    window.addEventListener('load', ()=>{
-      // small delay so layout settles
-      setTimeout(play, 600);
-    });
+      // initialization: wait a small time for GSAP script to load (if allowed)
+      function init(){
+        // reduced-motion respect
+        const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if(reduced){ // show scenes with no motion
+          showScene(0);
+          startFallback(0);
+          return;
+        }
 
-    // Triple-check notes (programmatic checks):
-    // 1) icons length >= lines length? if not, we gracefully fallback to first icon.
-    // 2) durations computed per text length to avoid fast clipping of long sentences.
-    // 3) brand color used in logo and caption for consistent palette (#2e3d75).
+        // try to setup GSAP if available
+        if(window.gsap){
+          const ok = setupGSAP();
+          if(ok) return; // done
+        }
 
+        // if gsap not yet loaded, poll for a short window (1.5s) then fallback
+        let waited = 0;
+        const poll = setInterval(()=>{
+          waited += 100;
+          if(window.gsap){ clearInterval(poll); const ok = setupGSAP(); if(!ok) startFallback(0); }
+          if(waited > 1500){ clearInterval(poll); startFallback(0); }
+        }, 100);
+      }
+
+      // click to go to next scene immediately
+      reel.addEventListener('click', ()=>{
+        try{
+          if(window.gsap && masterTimeline){
+            masterTimeline.pause();
+            const next = (scenes.findIndex(s=>s.classList.contains('active')) + 1) % scenes.length;
+            showScene(next);
+            // reset progress bar to correct percent
+            const elapsed = durations.slice(0,next).reduce((a,b)=>a+b,0);
+            progress.style.width = (elapsed/total*100) + '%';
+            // resume timeline after short delay
+            setTimeout(()=> masterTimeline.play(), 700);
+          }else{
+            // fallback: clear timers and show next
+            clearFallback();
+            const cur = scenes.findIndex(s=>s.classList.contains('active'));
+            const next = (cur + 1) % scenes.length;
+            showScene(next);
+            // resume fallback after a small pause
+            setTimeout(()=> startFallback((next+1)%scenes.length), 700);
+          }
+        }catch(err){ console.error(err); }
+      });
+
+      // error overlay handlers
+      window.addEventListener('error', e=>{ if(errorBox){ errorBox.textContent = 'JS Error: ' + (e && e.message ? e.message : String(e)); document.getElementById('errorOverlay').style.display='block'; } });
+      window.addEventListener('unhandledrejection', ev=>{ if(errorBox){ errorBox.textContent = 'Promise Rejection: ' + (ev.reason && ev.reason.message ? ev.reason.message : JSON.stringify(ev.reason)); document.getElementById('errorOverlay').style.display='block'; } });
+
+      // start
+      window.addEventListener('load', ()=>{
+        try{ init(); }catch(err){ console.error(err); startFallback(0); }
+      });
+
+    })();
   </script>
 </body>
 </html>
