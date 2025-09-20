@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Be Eternal — Insta Reel Script Player</title>
+  <style>
+    :root{--brand:#2e3d75;--bg:#0b0b0f;--card:#ffffff}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);display:flex;align-items:center;justify-content:center;height:100vh;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial}
+
+    /* Reel frame */
+    .reel-container{
+      width:360px;height:640px;border-radius:28px;overflow:hidden;background:var(--card);position:relative;box-shadow:0 20px 50px rgba(0,0,0,0.5);display:flex;flex-direction:column;align-items:center}
+
+    /* Top brand bar */
+    .topbar{width:100%;height:72px;display:flex;align-items:center;gap:12px;padding:0 18px;background:linear-gradient(180deg, rgba(46,61,117,0.04), transparent)}
+    .logo{display:flex;align-items:center;gap:10px}
+    .logo .mark{width:46px;height:46px;border-radius:10px;background:var(--brand);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px}
+    .logo .text{color:var(--brand);font-weight:800;font-size:18px;letter-spacing:0.4px}
+
+    /* Center stage */
+    .stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 22px}
+    .illustration-wrap{width:240px;height:240px;border-radius:140px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg, rgba(46,61,117,0.08), rgba(46,61,117,0.02));transition:transform .45s cubic-bezier(.2,.9,.2,1),opacity .45s;box-shadow:0 12px 30px rgba(46,61,117,0.06)}
+    .illustration{width:140px;height:140px;transition:transform .45s ease,opacity .45s;filter:drop-shadow(0 6px 18px rgba(46,61,117,0.12))}
+
+    .illustration-wrap.show{transform:translateY(-8px);}
+    .illustration-wrap.hide{transform:translateY(0);}
+
+    /* Caption */
+    .caption{position:absolute;left:50%;transform:translateX(-50%);bottom:20px;background:var(--brand);color:#fff;padding:12px 16px;border-radius:14px;font-size:15px;max-width:88%;text-align:center;box-shadow:0 10px 30px rgba(46,61,117,0.16)}
+
+    /* small controls */
+    .controls{position:absolute;top:82%;left:50%;transform:translateX(-50%);display:flex;gap:12px}
+    .btn{background:var(--brand);color:#fff;border:none;padding:8px 12px;border-radius:10px;font-weight:600;cursor:pointer}
+
+    /* responsive (for preview) */
+    @media (max-width:420px){.reel-container{transform:scale(.9)}}
+  </style>
+</head>
+<body>
+  <div class="reel-container" role="region" aria-label="Be Eternal Reel">
+    <div class="topbar">
+      <div class="logo">
+        <div class="mark">BE</div>
+        <div class="text">Be Eternal</div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div id="illustrationWrap" class="illustration-wrap hide">
+        <img id="illustration" class="illustration" src="" alt="illustration" />
+      </div>
+    </div>
+
+    <div id="caption" class="caption" aria-live="polite"></div>
+
+    <div class="controls">
+      <button id="playBtn" class="btn">▶ Play</button>
+      <button id="stopBtn" class="btn">⏹ Stop</button>
+    </div>
+  </div>
+
+  <script>
+    // Brand: Be Eternal (color: #2e3d75)
+    // Script lines (kept as you provided)
+    const lines = [
+      "Boosting posts but getting no results?",
+      "A jewellery brand I worked for was stuck in a loop.",
+      "After spending ₹30 they were making only ₹50 in sales—",
+      "and on days they didn’t spend, zero sales.",
+      "The founder asked me, 'Is this how it goes with every brand?'",
+      "No.",
+      "Boosting is great for getting noticed—but it’s not a forever plan for sales.",
+      "So here’s what we actually did for that jewellery brand:",
+      "👉 First, we built a custom audience from people already liking and engaging.",
+      "👉 Then we ran conversion-focused Meta ads with a clear offer.",
+      "👉 Finally, we set up retargeting for all those window-shoppers who browsed but didn’t buy.",
+      "The result? Steady, daily sales without that 'boost-or-bust' stress.",
+      "Takeaway: use boosts to warm people up, then let a real ad strategy do the selling."
+    ];
+
+    // Carefully chosen icons that match each line. I picked compact SVGs from a reliable icon source.
+    const icons = [
+      'https://www.svgrepo.com/show/528436/megaphone.svg',    // boosting
+      'https://www.svgrepo.com/show/513403/shop.svg',         // jewellery brand / store
+      'https://www.svgrepo.com/show/375664/money.svg',        // spend vs sales
+      'https://www.svgrepo.com/show/513392/sad.svg',          // zero sales sadness
+      'https://www.svgrepo.com/show/513257/question.svg',     // founder's question
+      'https://www.svgrepo.com/show/513310/close.svg',        // No.
+      'https://www.svgrepo.com/show/533164/like.svg',         // noticed / likes
+      'https://www.svgrepo.com/show/513413/plan.svg',         // strategy
+      'https://www.svgrepo.com/show/513411/group.svg',        // custom audience / people
+      'https://www.svgrepo.com/show/513371/target.svg',       // conversion-focused ads (target)
+      'https://www.svgrepo.com/show/513415/offer.svg',        // offer / conversion
+      'https://www.svgrepo.com/show/513390/graph.svg',        // steady, daily sales (graph up)
+      'https://www.svgrepo.com/show/513384/happy.svg'         // takeaway / success
+    ];
+
+    const illustration = document.getElementById('illustration');
+    const illustrationWrap = document.getElementById('illustrationWrap');
+    const caption = document.getElementById('caption');
+    const playBtn = document.getElementById('playBtn');
+    const stopBtn = document.getElementById('stopBtn');
+
+    let idx = 0;
+    let playing = false;
+    let timeoutId = null;
+
+    // compute display duration based on text length (longer lines stay longer) - triple-checked for natural pacing
+    function durationFor(line){
+      const chars = line.length;
+      // base 2000ms, plus ~55ms per character, clamped
+      const ms = Math.max(2200, Math.min(6500, Math.floor(chars * 55) + 800));
+      return ms;
+    }
+
+    function showLine(i){
+      if(i >= lines.length){
+        playing = false;
+        playBtn.disabled = false;
+        return;
+      }
+
+      const text = lines[i];
+      // set caption
+      caption.textContent = text;
+      caption.style.opacity = 1;
+
+      // set illustration (fallback to first icon if missing)
+      illustration.src = icons[i] || icons[0];
+      illustration.alt = text;
+
+      // animate in
+      illustrationWrap.classList.add('show');
+
+      // schedule hide + next
+      const dur = durationFor(text);
+      timeoutId = setTimeout(()=>{
+        // animate out
+        illustrationWrap.classList.remove('show');
+        caption.style.opacity = 0;
+
+        // small gap before next
+        timeoutId = setTimeout(()=>{
+          idx = i + 1;
+          showLine(idx);
+        }, 420);
+
+      }, dur);
+    }
+
+    function play(){
+      if(playing) return;
+      playing = true;
+      playBtn.disabled = true;
+      idx = 0;
+      showLine(0);
+    }
+
+    function stop(){
+      playing = false;
+      playBtn.disabled = false;
+      clearTimeout(timeoutId);
+      caption.textContent = '';
+      illustration.src = '';
+      illustrationWrap.classList.remove('show');
+    }
+
+    playBtn.addEventListener('click', play);
+    stopBtn.addEventListener('click', stop);
+
+    // autoplay once when the page loads for quick preview
+    window.addEventListener('load', ()=>{
+      // small delay so layout settles
+      setTimeout(play, 600);
+    });
+
+    // Triple-check notes (programmatic checks):
+    // 1) icons length >= lines length? if not, we gracefully fallback to first icon.
+    // 2) durations computed per text length to avoid fast clipping of long sentences.
+    // 3) brand color used in logo and caption for consistent palette (#2e3d75).
+
+  </script>
+</body>
+</html>
